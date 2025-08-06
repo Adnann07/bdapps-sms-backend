@@ -9,14 +9,14 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
-// ✅ Route: Handle Subscription (Direct Debit)
+// Root route
+app.get('/', (req, res) => {
+  res.send('BDApps subscription server is running.');
+});
+
+// Handle Subscription (Direct Debit)
 app.post('/subscribe', async (req, res) => {
-  const {
-    externalTrxId,
-    amount,
-    subscriberId,
-    accountId
-  } = req.body;
+  const { externalTrxId, amount, subscriberId, accountId } = req.body;
 
   try {
     const response = await axios.post(
@@ -25,7 +25,7 @@ app.post('/subscribe', async (req, res) => {
         externalTrxId,
         amount,
         applicationId: process.env.APP_ID,
-        password: process.env.PASSWORD,
+        password: process.env.APP_PASSWORD,
         subscriberId: `tel:${subscriberId}`,
         currency: "BDT",
         accountId,
@@ -43,7 +43,6 @@ app.post('/subscribe', async (req, res) => {
   }
 });
 
-// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`✅ BDApps Subscription API running on port ${PORT}`);
 });
