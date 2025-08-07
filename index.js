@@ -7,7 +7,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
+
 
 // Root route
 app.get('/', (req, res) => {
@@ -56,4 +57,5 @@ app.post('/subscribe', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ BDApps Subscription API running on port ${PORT}`);
 });
+
 
