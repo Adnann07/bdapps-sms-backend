@@ -30,7 +30,6 @@ app.post('/subscribe', async (req, res) => {
       });
     }
 
-    // Validate mobile number format
     if (!/^8801[3-9]\d{8}$/.test(mobile)) {
       return res.status(400).json({ 
         status: 'error', 
@@ -41,7 +40,7 @@ app.post('/subscribe', async (req, res) => {
     const payload = {
       applicationId: process.env.APP_ID,
       password: process.env.APP_PASSWORD,
-      subscriberId: `tel:${mobile}`.replace(/\s+/g, ''), // Ensure no whitespace
+      subscriberId: `tel:${mobile}`.replace(/\s+/g, ''),
       amount: "2",
       externalTrxId: `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       paymentInstrumentName: "Mobile Account",
@@ -56,39 +55,37 @@ app.post('/subscribe', async (req, res) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        timeout: 10000 // 10 seconds timeout
+        timeout: 10000
       }
     );
+
+    console.log("BDApps full response:", JSON.stringify(response.data, null, 2));
 
     const result = response.data;
 
     if (result.statusCode === "S1000") {
       return res.json({ 
         status: "success", 
-        message: "Subscription successful! BDT 2 charged." 
+        message: "Subscription successful! BDT 2 charged.",
+        bdapps_raw: result
       });
     } else {
       return res.json({ 
         status: "fail", 
-        message: result.statusDetail || "Payment processing failed" 
+        message: result.statusDetail || "Payment processing failed",
+        bdapps_raw: result
       });
     }
 
   } catch (error) {
     console.error('BDApps API Error:', error.response?.data || error.message);
     
-    let errorMessage = "Payment service unavailable";
-    if (error.response) {
-      errorMessage = error.response.data?.statusDetail || 
-                    error.response.data?.message || 
-                    "Payment gateway error";
-    } else if (error.request) {
-      errorMessage = "No response from payment gateway";
-    }
-
     return res.status(500).json({
       status: "error",
-      message: errorMessage,
+      message: error.response?.data?.statusDetail || 
+               error.response?.data?.message || 
+               "Payment gateway error",
+      bdapps_raw: error.response?.data || error.message
     });
   }
 });
