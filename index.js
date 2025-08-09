@@ -9,16 +9,17 @@ app.use(cors());
 
 const PORT = process.env.PORT || 80;
 
+// Custom log to confirm new server version is running
+console.log('🚀 NEW SERVER VERSION RUNNING - BDApps subscription server starting...');
+
 app.get('/', (req, res) => {
   res.send('BDApps subscription server is running.');
 });
 
 app.post('/subscribe', async (req, res) => {
   try {
-    // ✅ Accept the exact payload from Flutter
     const payload = req.body;
 
-    // Optional safety cleanup
     if (!payload.subscriberId || !payload.accountId) {
       return res.status(400).json({
         status: 'error',
@@ -26,15 +27,12 @@ app.post('/subscribe', async (req, res) => {
       });
     }
 
-    // Remove spaces from subscriberId
     if (typeof payload.subscriberId === 'string') {
       payload.subscriberId = payload.subscriberId.replace(/\s+/g, '');
     }
 
-    // Log the received payload for debugging
     console.log('Received from Flutter:', JSON.stringify(payload, null, 2));
 
-    // Send request to BDApps API
     const response = await axios.post(
       'https://developer.bdapps.com/caas/direct/debit',
       payload,
@@ -50,7 +48,6 @@ app.post('/subscribe', async (req, res) => {
     console.log("BDApps full response:", JSON.stringify(response.data, null, 2));
     const result = response.data;
 
-    // Send back success or fail status
     if (result.statusCode === "S1000") {
       return res.json({
         status: "success",
