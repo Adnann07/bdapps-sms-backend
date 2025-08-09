@@ -9,49 +9,37 @@ app.use(cors());
 
 const PORT = process.env.PORT || 80;
 
-// Improved error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ status: 'error', message: 'Internal server error' });
-});
-
 app.get('/', (req, res) => {
   res.send('BDApps subscription server is running.');
 });
 
 app.post('/subscribe', async (req, res) => {
   try {
-    const { mobile } = req.body;
-    
-    if (!mobile) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Mobile number is required' 
+    // ✅ Accept the exact payload from Flutter
+    const payload = req.body;
+
+    // Optional safety cleanup
+    if (!payload.subscriberId || !payload.accountId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required fields: subscriberId or accountId'
       });
     }
 
-    if (!/^8801[3-9]\d{8}$/.test(mobile)) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Invalid Bangladeshi mobile number format' 
-      });
+    // Remove spaces from subscriberId
+    if (typeof payload.subscriberId === 'string') {
+      payload.subscriberId = payload.subscriberId.replace(/\s+/g, '');
     }
 
-    const payload = {
-      applicationId: process.env.APP_ID,
-      password: process.env.APP_PASSWORD,
-      subscriberId: `tel:${mobile}`.replace(/\s+/g, ''),
-      amount: "2",
-      externalTrxId: `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      paymentInstrumentName: "Mobile Account",
-      currency: "BDT"
-    };
+    // Log the received payload for debugging
+    console.log('Received from Flutter:', JSON.stringify(payload, null, 2));
 
+    // Send request to BDApps API
     const response = await axios.post(
       'https://developer.bdapps.com/caas/direct/debit',
       payload,
-      { 
-        headers: { 
+      {
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -60,18 +48,18 @@ app.post('/subscribe', async (req, res) => {
     );
 
     console.log("BDApps full response:", JSON.stringify(response.data, null, 2));
-
     const result = response.data;
 
+    // Send back success or fail status
     if (result.statusCode === "S1000") {
-      return res.json({ 
-        status: "success", 
-        message: "Subscription successful! BDT 2 charged.",
+      return res.json({
+        status: "success",
+        message: "Subscription successful!",
         bdapps_raw: result
       });
     } else {
-      return res.json({ 
-        status: "fail", 
+      return res.json({
+        status: "fail",
         message: result.statusDetail || "Payment processing failed",
         bdapps_raw: result
       });
@@ -79,11 +67,11 @@ app.post('/subscribe', async (req, res) => {
 
   } catch (error) {
     console.error('BDApps API Error:', error.response?.data || error.message);
-    
+
     return res.status(500).json({
       status: "error",
-      message: error.response?.data?.statusDetail || 
-               error.response?.data?.message || 
+      message: error.response?.data?.statusDetail ||
+               error.response?.data?.message ||
                "Payment gateway error",
       bdapps_raw: error.response?.data || error.message
     });
